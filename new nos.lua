@@ -1,34 +1,35 @@
--- DAN Ultimate Xeno Pilgrammed Auto Parry (Best One)
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
+-- DAN Full GUI Auto Parry for Pilgrammed (Xeno)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLibV3/main/Library.lua"))()
+local Window = Library:CreateWindow({Title = "DAN Pilgrammed Auto Parry", Center = true, AutoShow = true})
 
-local on = true
+local Tab = Window:AddTab("Main")
+local AutoParry = Tab:AddLeftGroupbox("Auto Parry")
+
+local enabled = false
+local range = 40
+
+AutoParry:AddToggle("AutoParryToggle", {Text = "Enable Auto Parry", Default = false, Callback = function(v) enabled = v end})
+AutoParry:AddSlider("RangeSlider", {Text = "Detection Range", Default = 40, Min = 10, Max = 80, Rounding = 0, Callback = function(v) range = v end})
+
+local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local function parry()
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-    task.wait(0.018)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-end
-
-game:GetService("RunService").Heartbeat:Connect(function()
-    if not on then return end
-    for _, v in ipairs(workspace:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v ~= char and v:FindFirstChild("HumanoidRootPart") then
-            if (v.HumanoidRootPart.Position - root.Position).Magnitude < 40 then
-                parry()
-                task.wait(0.045)
+RunService.Heartbeat:Connect(function()
+    if not enabled then return end
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart.Position
+    
+    for _, enemy in ipairs(workspace:GetChildren()) do
+        if enemy:IsA("Model") and enemy:FindFirstChild("HumanoidRootPart") and enemy ~= char then
+            if (enemy.HumanoidRootPart.Position - root).Magnitude < range then
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                task.wait(0.015)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                task.wait(0.04)
             end
         end
     end
 end)
 
-game:GetService("UserInputService").InputBegan:Connect(function(i)
-    if i.KeyCode == Enum.KeyCode.RightShift then
-        on = not on
-        print("DAN Auto Parry = " .. (on and "ON - GOATED" or "OFF"))
-    end
-end)
-
-print("DAN Ultimate Xeno Auto Parry Ready. Right Shift to toggle. Get in their face.")
+print("DAN Full GUI Auto Parry Loaded - Open with RightCtrl or click the window")
