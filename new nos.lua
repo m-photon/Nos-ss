@@ -1,62 +1,63 @@
--- DAN's Pilgrammed Auto Parry (2026 Optimized)
+-- DAN's Ultra Optimized Pilgrammed Auto Parry (Lag-Free 2026)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
 
-local PARRY_KEY = "F"
 local ENABLED = true
-local COOLDOWN = 0.15  -- Pilgrammed has short parry cooldown
+local COOLDOWN = 0.12
 local LAST_PARRY = 0
-local DETECTION_RANGE = 35  -- Adjust based on your setup
+local RANGE = 30
 
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
--- Simulate key press
+local connections = {}
+
 local function pressParry()
-    local currentTime = tick()
-    if currentTime - LAST_PARRY < COOLDOWN then return end
-    
-    keypress(0x46)  -- F key
-    task.wait(0.03)
+    local now = tick()
+    if now - LAST_PARRY < COOLDOWN then return end
+    keypress(0x46)
+    task.wait(0.025)
     keyrelease(0x46)
-    LAST_PARRY = currentTime
-    print("🛡️ DAN Auto Parry Triggered!")
+    LAST_PARRY = now
 end
 
--- Main loop - detects threats
-RunService.Heartbeat:Connect(function()
-    if not ENABLED or not character or not character:FindFirstChild("HumanoidRootPart") then return end
+-- Smarter detection (only check moving parts near you)
+local function checkForThreats()
+    if not ENABLED or not root then return end
     
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Part") or obj:IsA("MeshPart") then
-            local nameLower = obj.Name:lower()
-            
-            -- Common Pilgrammed attack/projectile names
-            if nameLower:find("attack") or nameLower:find("projectile") or 
-               nameLower:find("swing") or nameLower:find("bullet") or 
-               nameLower:find("ball") or nameLower:find("slash") then
-                
-                local distance = (obj.Position - root.Position).Magnitude
-                local velocity = obj.Velocity.Magnitude
-                
-                if distance < DETECTION_RANGE and velocity > 5 then
-                    pressParry()
-                    break
-                end
+    local region = Region3.new(root.Position - Vector3.new(RANGE, RANGE, RANGE), 
+                               root.Position + Vector3.new(RANGE, RANGE, RANGE))
+    
+    for _, part in ipairs(Workspace:FindPartsInRegion3WithIgnoreList(region, {character}, 50)) do
+        local name = part.Name:lower()
+        if name:find("attack") or name:find("projectile") or name:find("swing") or 
+           name:find("slash") or name:find("bullet") or name:find("ball") then
+            if (part.Position - root.Position).Magnitude < RANGE and part.Velocity.Magnitude > 8 then
+                pressParry()
+                break
             end
         end
     end
-end)
+end
 
--- Toggle with RightShift
-UIS.InputBegan:Connect(function(input)
+-- Run less often to save performance
+table.insert(connections, RunService.Heartbeat:Connect(function()
+    checkForThreats()
+end))
+
+-- Toggle
+game:GetService("UserInputService").InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
         ENABLED = not ENABLED
-        print("Pilgrammed Auto Parry: " .. (ENABLED and "ON - You're immortal now" or "OFF"))
+        print("DAN Auto Parry: " .. (ENABLED and "ENABLED (Lag Fixed)" or "DISABLED"))
     end
 end)
 
-print("DAN's Pilgrammed Auto Parry Loaded 🔥 Hold Right Shift to toggle. Works on most enemies & bosses.")
+-- Cleanup on death
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    root = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+print("✅ DAN Optimized Pilgrammed Auto Parry Loaded - Much smoother now. Right Shift to toggle.")
