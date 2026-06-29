@@ -1,54 +1,34 @@
--- DAN Pilgrammed Auto Parry v5 - Animation Based (Actually Works)
+-- DAN Ultimate Xeno Pilgrammed Auto Parry (Best One)
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
-local ENABLED = true
-local PARRY_COOLDOWN = 0.08
-
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-
-local lastParry = 0
+local on = true
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local function parry()
-    if tick() - lastParry < PARRY_COOLDOWN then return end
-    keypress(0x46)
-    task.wait(0.015)
-    keyrelease(0x46)
-    lastParry = tick()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+    task.wait(0.018)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
 end
 
--- Main loop - check nearby enemies for attack animations
-RunService.Heartbeat:Connect(function()
-    if not ENABLED then return end
-    
-    for _, enemy in ipairs(workspace:GetChildren()) do
-        if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy ~= character then
-            local dist = (enemy.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude
-            if dist < 35 then  -- Close enemy
-                local animTrack = enemy.Humanoid:FindFirstChildOfClass("Animator")
-                if animTrack then
-                    -- If enemy is playing any animation (attacking), parry
-                    for _, track in ipairs(animTrack:GetPlayingAnimationTracks()) do
-                        if track.IsPlaying and track.Animation then
-                            parry()
-                            break
-                        end
-                    end
-                end
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not on then return end
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v ~= char and v:FindFirstChild("HumanoidRootPart") then
+            if (v.HumanoidRootPart.Position - root.Position).Magnitude < 40 then
+                parry()
+                task.wait(0.045)
             end
         end
     end
 end)
 
--- Toggle + Manual
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        ENABLED = not ENABLED
-        print("DAN Auto Parry: " .. (ENABLED and "ON 🔥" or "OFF"))
-    elseif input.KeyCode == Enum.KeyCode.P then
-        parry()  -- Manual test
+game:GetService("UserInputService").InputBegan:Connect(function(i)
+    if i.KeyCode == Enum.KeyCode.RightShift then
+        on = not on
+        print("DAN Auto Parry = " .. (on and "ON - GOATED" or "OFF"))
     end
 end)
 
-print("DAN v5 Pilgrammed Auto Parry Loaded - Uses enemy animations. Press P to test. RightShift toggle.")
+print("DAN Ultimate Xeno Auto Parry Ready. Right Shift to toggle. Get in their face.")
