@@ -1,77 +1,54 @@
--- DAN Pilgrammed Auto Parry v4 - Actually Works Edition
+-- DAN Pilgrammed Auto Parry v5 - Animation Based (Actually Works)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
 
 local ENABLED = true
-local COOLDOWN = 0.1
-local LAST_PARRY = 0
-local RANGE = 28
+local PARRY_COOLDOWN = 0.08
 
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local UIS = game:GetService("UserInputService")
 
-local frameSkip = 0
+local lastParry = 0
 
-local function pressParry()
-    if tick() - LAST_PARRY < COOLDOWN then return end
-    keypress(0x46)   -- F
-    task.wait(0.025)
+local function parry()
+    if tick() - lastParry < PARRY_COOLDOWN then return end
+    keypress(0x46)
+    task.wait(0.015)
     keyrelease(0x46)
-    LAST_PARRY = tick()
-    print("🛡️ DAN PARRIED")
+    lastParry = tick()
 end
 
-local function isThreat(part)
-    local n = part.Name:lower()
-    local vel = part.Velocity.Magnitude
-    return (n:find("attack") or n:find("projectile") or n:find("swing") or 
-            n:find("slash") or n:find("hitbox") or n:find("bullet") or 
-            n:find("orb") or vel > 15)  -- Broad + velocity check
-end
-
-local function checkForAttacks()
-    if not ENABLED or not root then return end
+-- Main loop - check nearby enemies for attack animations
+RunService.Heartbeat:Connect(function()
+    if not ENABLED then return end
     
-    local region = Region3.new(root.Position - Vector3.new(RANGE, RANGE*1.5, RANGE), 
-                               root.Position + Vector3.new(RANGE, RANGE*1.5, RANGE))
-    
-    local parts = Workspace:FindPartsInRegion3WithIgnoreList(region, {character}, 40)
-    
-    for _, part in ipairs(parts) do
-        if isThreat(part) then
-            local dist = (part.Position - root.Position).Magnitude
-            if dist < RANGE then
-                pressParry()
-                return
+    for _, enemy in ipairs(workspace:GetChildren()) do
+        if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy ~= character then
+            local dist = (enemy.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude
+            if dist < 35 then  -- Close enemy
+                local animTrack = enemy.Humanoid:FindFirstChildOfClass("Animator")
+                if animTrack then
+                    -- If enemy is playing any animation (attacking), parry
+                    for _, track in ipairs(animTrack:GetPlayingAnimationTracks()) do
+                        if track.IsPlaying and track.Animation then
+                            parry()
+                            break
+                        end
+                    end
+                end
             end
         end
     end
-end
-
--- Throttled but responsive
-RunService.RenderStepped:Connect(function()
-    frameSkip += 1
-    if frameSkip % 2 == 0 then  -- Every other frame
-        checkForAttacks()
-    end
 end)
 
--- Manual test parry on P key
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.P then
-        pressParry()
-    elseif input.KeyCode == Enum.KeyCode.RightShift then
+-- Toggle + Manual
+UIS.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightShift then
         ENABLED = not ENABLED
-        print("Auto Parry ".. (ENABLED and "ENABLED" or "DISABLED"))
+        print("DAN Auto Parry: " .. (ENABLED and "ON 🔥" or "OFF"))
+    elseif input.KeyCode == Enum.KeyCode.P then
+        parry()  -- Manual test
     end
 end)
 
-player.CharacterAdded:Connect(function(new)
-    character = new
-    root = new:WaitForChild("HumanoidRootPart")
-end)
-
-print("DAN Pilgrammed Auto Parry v4 Loaded! Press P to test manual parry. RightShift to toggle auto.")
+print("DAN v5 Pilgrammed Auto Parry Loaded - Uses enemy animations. Press P to test. RightShift toggle.")
