@@ -1,35 +1,35 @@
--- DAN Full GUI Auto Parry for Pilgrammed (Xeno)
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLibV3/main/Library.lua"))()
-local Window = Library:CreateWindow({Title = "DAN Pilgrammed Auto Parry", Center = true, AutoShow = true})
+-- DAN Debug Auto Parry - Toggle on P key
+local player = game.Players.LocalPlayer
+local ENABLED = false
 
-local Tab = Window:AddTab("Main")
-local AutoParry = Tab:AddLeftGroupbox("Auto Parry")
+print("DAN Script Loaded - Press P to toggle Auto Parry")
 
-local enabled = false
-local range = 40
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.P then
+        ENABLED = not ENABLED
+        print("=== AUTO PARRY " .. (ENABLED and "ENABLED 🔥" or "DISABLED") .. " ===")
+    end
+end)
 
-AutoParry:AddToggle("AutoParryToggle", {Text = "Enable Auto Parry", Default = false, Callback = function(v) enabled = v end})
-AutoParry:AddSlider("RangeSlider", {Text = "Detection Range", Default = 40, Min = 10, Max = 80, Rounding = 0, Callback = function(v) range = v end})
-
-local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
-RunService.Heartbeat:Connect(function()
-    if not enabled then return end
-    local char = game.Players.LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local root = char.HumanoidRootPart.Position
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not ENABLED then return end
     
-    for _, enemy in ipairs(workspace:GetChildren()) do
-        if enemy:IsA("Model") and enemy:FindFirstChild("HumanoidRootPart") and enemy ~= char then
-            if (enemy.HumanoidRootPart.Position - root).Magnitude < range then
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                task.wait(0.015)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                task.wait(0.04)
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") and obj ~= char then
+            local dist = (obj.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+            if dist < 35 then
+                game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                task.wait(0.02)
+                game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.F, false, game)
+                print("PARRIED on enemy at " .. math.floor(dist) .. " studs")
+                task.wait(0.08)
+                break
             end
         end
     end
 end)
 
-print("DAN Full GUI Auto Parry Loaded - Open with RightCtrl or click the window")
+print("Press P to toggle. Stand close to enemies and watch for PARRIED messages.")
